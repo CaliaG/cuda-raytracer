@@ -12,6 +12,9 @@
 #include "src/texture.cuh"
 #include "src/vec3.cuh"
 
+void save_to_ppm(thrust::device_ptr<Vec3> fb, int nx, int ny);
+void save_to_jpg(thrust::device_ptr<Vec3> fb, int nx, int ny);
+
 __global__ void rand_init(curandState *randState, int seed) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
     curand_init(seed, 0, 0, randState);
@@ -161,8 +164,7 @@ int main() {
   size_t frameSize = 3 * total_pixel_size;
 
   // declare frame
-  thrust::device_ptr<Vec3> fb =
-      thrust::device_malloc<Vec3>(frameSize);
+  thrust::device_ptr<Vec3> fb = thrust::device_malloc<Vec3>(frameSize);
   CUDA_CONTROL(cudaGetLastError());
 
   // declare random state
@@ -239,26 +241,11 @@ int main() {
   biter = clock();
   double saniyeler =
       ((double)(biter - baslar)) / CLOCKS_PER_SEC;
-  std::cerr << "Islem " << saniyeler << " saniye surdu"
-            << std::endl;
+  std::cerr << "Islem " << saniyeler << " saniye surdu" << std::endl;
 
-  std::cout << "P3" << std::endl;
-  std::cout << WIDTH << " " << HEIGHT << std::endl;
-  std::cout << "255" << std::endl;
-
-  for (int j = HEIGHT - 1; j >= 0; j--) {
-    for (int i = 0; i < WIDTH; i++) {
-      size_t pixel_index = j * WIDTH + i;
-      thrust::device_reference<Vec3> pix_ref =
-          fb[pixel_index];
-      Vec3 pixel = pix_ref;
-      int ir = int(255.99 * pixel.r());
-      int ig = int(255.99 * pixel.g());
-      int ib = int(255.99 * pixel.b());
-      std::cout << ir << " " << ig << " " << ib
-                << std::endl;
-    }
-  }
+  // save_to_ppm(fb, WIDTH, HEIGHT);
+  save_to_jpg(fb, WIDTH, HEIGHT);
+  
   CUDA_CONTROL(cudaDeviceSynchronize());
   CUDA_CONTROL(cudaGetLastError());
   free_world(fb,                           //
@@ -273,4 +260,45 @@ int main() {
   CUDA_CONTROL(cudaGetLastError());
 
   cudaDeviceReset();
+}
+
+void save_to_ppm(thrust::device_ptr<Vec3> fb, int nx, int ny) {
+	std::ofstream ofs;
+	ofs.open("image.ppm", std::ios::out | std::ios::binary);
+	ofs << "P3\n" << nx << " " << ny << "\n255\n";
+    for (int j = ny - 1; j >= 0; j--) {
+        for (int i = 0; i < nx; i++) {
+            size_t pixel_index = j*nx + i;
+            thrust::device_reference<Vec3> pix_ref = fb[pixel_index];
+            Vec3 pixel = pix_ref;
+            int ir = int(255.99*pixel.r());
+            int ig = int(255.99*pixel.g());
+            int ib = int(255.99*pixel.b());
+            ofs << ir << " " << ig << " " << ib << "\n";
+        }
+    }
+	ofs.close();
+}
+
+void save_to_jpg(thrust::device_ptr<Vec3> fb, int nx, int ny) {
+    uint8_t* imgBuff = (uint8_t*)std::malloc(nx * ny * 3 * sizeof(uint8_t));
+    for (int j = ny - 1; j >= 0; j--) {
+        for (int i = 0; i < nx; i++) {
+            size_t index = j*nx + i;
+            thrust::device_reference<Vec3> pix_ref = fb[index];
+            Vec3 pixel = pix_ref;
+            float r = pixel.r();
+            float g = pixel.g();
+            float b = pixel.b();
+            // stbi generates a Y flipped image
+            size_t rev_index = (ny - j - 1) * nx + i;
+            imgBuff[rev_index * 3 + 0] = int(255.999f * r) & 255;
+            imgBuff[rev_index * 3 + 1] = int(255.999f * g) & 255;
+            imgBuff[rev_index * 3 + 2] = int(255.999f * b) & 255;
+        }
+    }
+    std::cout << "FUCK\n";
+    //stbi_write_png("out.png", WIDTH, HEIGHT, 3, imgBuff, WIDTH * 3);
+    stbi_write_jpg("image.jpg", nx, ny, 3, imgBuff, 100);
+    std::free(imgBuff);
 }

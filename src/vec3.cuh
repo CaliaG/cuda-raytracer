@@ -23,15 +23,9 @@ public:
     e[1] = es[1];
     e[2] = e[2];
   }
-  __host__ __device__ inline float x() const {
-    return e[0];
-  }
-  __host__ __device__ inline float y() const {
-    return e[1];
-  }
-  __host__ __device__ inline float z() const {
-    return e[2];
-  }
+  __host__ __device__ inline float x() const { return e[0]; }
+  __host__ __device__ inline float y() const { return e[1]; }
+  __host__ __device__ inline float z() const { return e[2]; }
   __host__ __device__ inline float r() const { return x(); }
   __host__ __device__ inline float g() const { return y(); }
   __host__ __device__ inline float b() const { return z(); }

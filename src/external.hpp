@@ -7,6 +7,7 @@
 #include <float.h>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <thrust/copy.h>
 #include <thrust/device_delete.h>
 #include <thrust/device_new.h>
@@ -21,3 +22,5 @@
 // stb image read & write
 #define STB_IMAGE_IMPLEMENTATION
 #include "../libs/stb/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "../libs/stb/stb_image_write.h"
